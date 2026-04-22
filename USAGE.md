@@ -133,10 +133,17 @@ Respuesta esperada (201):
     "id": 3,
     "role": "ALUMNO",
     "nombre": "Twincho",
-    "apellido": "Gonzalez"
+    "apellido": "Gonzalez",
+    "student_login_id": "twinchogonzalez1"
   }
 }
 ~~~
+
+Regla de generacion de `student_login_id`:
+
+- Formato: `primerNombre + primerApellido + id_incrementador`.
+- Todo en minusculas.
+- El `id_incrementador` existe para evitar colisiones entre alumnos con mismo primer nombre y primer apellido.
 
 ## 3. Login por rol
 
@@ -220,8 +227,7 @@ Respuesta esperada (200):
 
 Body requerido:
 
-- nombre
-- apellido
+- student_login_id
 
 Ejemplo:
 
@@ -229,8 +235,7 @@ Ejemplo:
 curl -X POST http://localhost:3000/api/auth/login/alumno \
   -H "Content-Type: application/json" \
   -d '{
-    "nombre": "Twincho",
-    "apellido": "Salinas"
+    "student_login_id": "twinchosalinas1"
   }'
 ~~~
 
@@ -244,7 +249,8 @@ Respuesta esperada (200):
     "id": 3,
     "role": "ALUMNO",
     "nombre": "Twincho",
-    "apellido": "Salinas"
+    "apellido": "Salinas",
+    "student_login_id": "twinchosalinas1"
   }
 }
 ~~~

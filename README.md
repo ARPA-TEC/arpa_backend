@@ -83,6 +83,19 @@ Base URL: `http://localhost:3000`
 			"apellido": "Salinas"
 		}
 		```
+	- Respuesta incluye `student_login_id` generado automaticamente:
+		```json
+		{
+			"message": "Alumno creado correctamente.",
+			"user": {
+				"id": 3,
+				"role": "ALUMNO",
+				"nombre": "Santiago",
+				"apellido": "Salinas",
+				"student_login_id": "santiagosalinas1"
+			}
+		}
+		```
 
 ### Login por rol
 
@@ -108,8 +121,7 @@ Base URL: `http://localhost:3000`
 	- Body:
 		```json
 		{
-			"nombre": "Oriana",
-			"apellido": "Vega"
+			"student_login_id": "santiagosalinas1"
 		}
 		```
 

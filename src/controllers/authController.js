@@ -105,17 +105,17 @@ async function loginTutor(req, res) {
 }
 
 async function loginStudent(req, res) {
-  const { nombre, apellido } = req.body;
+  const { student_login_id: studentLoginId } = req.body;
 
-  if ([nombre, apellido].some(isEmpty)) {
-    return res.status(400).json({ message: 'nombre y apellido son obligatorios.' });
+  if (isEmpty(studentLoginId)) {
+    return res.status(400).json({ message: 'student_login_id es obligatorio.' });
   }
 
   try {
-    const users = await query(
-      'SELECT * FROM users WHERE role = ? AND nombre = ? AND apellido = ? LIMIT 1',
-      [ROLE.STUDENT, nombre.trim(), apellido.trim()],
-    );
+    const users = await query('SELECT * FROM users WHERE role = ? AND student_login_id = ? LIMIT 1', [
+      ROLE.STUDENT,
+      studentLoginId.trim().toLowerCase(),
+    ]);
 
     if (!users.length) {
       return res.status(401).json({ message: 'Alumno no encontrado.' });
@@ -132,6 +132,7 @@ async function loginStudent(req, res) {
         role: user.role,
         nombre: user.nombre,
         apellido: user.apellido,
+        student_login_id: user.student_login_id,
       },
     });
   } catch (error) {
