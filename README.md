@@ -58,7 +58,7 @@ Base URL: `http://localhost:3000`
 		```json
 		{
 			"nombre": "Ana",
-			"apellido": "Lopez",
+			"apellido": "Mikkelsen",
 			"email": "ana.admin@arpa.com",
 			"password": "123456"
 		}
