@@ -4,7 +4,7 @@ Guia de uso de todas las rutas del backend ARPA.
 
 ## 1. Requisitos previos
 
-1. Tener MariaDB levantado.
+1. Tener MariaDB/MySQL levantado.
 2. Haber ejecutado el script SQL:
 
 ~~~bash
