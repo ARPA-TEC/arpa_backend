@@ -1,0 +1,25 @@
+{
+  "name": "arpa-backend",
+  "version": "1.0.0",
+  "description": "Sistema basico de autenticacion por roles para ARPA",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [
+    "express",
+    "mariadb",
+    "jwt",
+    "roles"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.3"
+  }
+}
