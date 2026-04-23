@@ -1,0 +1,94 @@
+erDiagram
+    USERS {
+        int id PK
+        enum role "ADMINISTRADOR | TUTOR | ALUMNO"
+        string nombre
+        string apellido
+        string email
+        string password_hash
+        string student_login_id
+        bool activo
+        datetime created_at
+    }
+
+    COORDINADORES {
+        int id_coordinador PK
+        int id_usuario FK
+    }
+
+    TUTORES {
+        int id_tutor PK
+        int id_usuario FK
+        int horas_acumuladas
+        int horas_requeridas
+        enum estado "activo | inactivo"
+    }
+
+    NIVEL_IDIOMA {
+        int id_nivel PK
+        enum codigo_mcer "A1 | A2 | B1 | B2 | C1 | C2"
+        string idioma
+        string descripcion
+    }
+
+    ESTUDIANTES {
+        int id_estudiante PK
+        int id_usuario FK
+        int id_tutor FK
+        int id_nivel FK
+        datetime fecha_asignacion
+    }
+
+    BITACORAS {
+        int id_bitacora PK
+        int id_tutor FK
+        int id_estudiante FK
+        date fecha_sesion
+        decimal duracion_horas
+        string notas
+        string evidencia_url
+        datetime fecha_registro
+    }
+
+    INCIDENCIAS {
+        int id_incidencia PK
+        int id_bitacora FK
+        date fecha_incidente
+        string descripcion
+        string firma_tutor
+        datetime fecha_registro
+    }
+
+    PROGRESO_ESTUDIANTE {
+        int id_progreso PK
+        int id_estudiante FK
+        int id_nivel FK
+        enum habilidad "comprension_lectora | expresion_oral | comprension_auditiva | expresion_escrita"
+        decimal puntuacion
+        date fecha_evaluacion
+    }
+
+    TEMARIO {
+        int id_temario PK
+        int id_nivel FK
+        string titulo
+        string descripcion
+        string contenido_url
+    }
+
+    USERS ||--o| COORDINADORES : "es"
+    USERS ||--o| TUTORES : "es"
+    USERS ||--o| ESTUDIANTES : "es"
+
+    TUTORES ||--o{ ESTUDIANTES : "asigna"
+    NIVEL_IDIOMA ||--o{ ESTUDIANTES : "clasifica"
+
+    TUTORES ||--o{ BITACORAS : "registra"
+    ESTUDIANTES ||--o{ BITACORAS : "participa"
+
+    BITACORAS ||--o{ INCIDENCIAS : "genera"
+
+    ESTUDIANTES ||--o{ PROGRESO_ESTUDIANTE : "tiene"
+    NIVEL_IDIOMA ||--o{ PROGRESO_ESTUDIANTE : "referencia"
+
+    NIVEL_IDIOMA ||--o{ TEMARIO : "organiza"

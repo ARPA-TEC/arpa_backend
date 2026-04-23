@@ -4,8 +4,34 @@ El backend de ARPA
 
 ## Requisitos
 
-- Node.js
-- MariaDB
+- Docker
+- Docker Compose
+
+## Inicio rapido (recomendado)
+
+Levanta API + MariaDB con un solo comando:
+
+```bash
+docker compose up --build
+```
+
+Servicios:
+
+- API: `http://localhost:3000`
+- MariaDB: `localhost:3307`
+
+Detener contenedores:
+
+```bash
+docker compose down
+```
+
+Reinicializar base de datos desde cero:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
 
 ## Instalacion
 
@@ -13,7 +39,18 @@ El backend de ARPA
 npm install
 ```
 
-## Configuracion
+## Inicializacion de base de datos en Docker
+
+MariaDB ejecuta automaticamente el script:
+
+- `docker/db/init/01-init-schema.sql`
+
+Importante:
+
+- Se ejecuta solo la primera vez que se crea el volumen de MariaDB.
+- Si el volumen ya existe, no vuelve a correr automaticamente.
+
+## Configuracion (sin Docker)
 
 1. Copia el archivo de ejemplo:
 
@@ -23,7 +60,7 @@ cp .env.example .env
 
 2. Ajusta los valores de conexion en `.env`.
 
-## Base de datos
+## Base de datos (sin Docker)
 
 Este proyecto usa una base MariaDB llamada `arpa-backend`.
 
@@ -33,7 +70,7 @@ Ejecuta el script SQL:
 mysql -u root -p < src/db/init.sql
 ```
 
-## Ejecutar el servidor
+## Ejecutar el servidor (sin Docker)
 
 Modo desarrollo:
 

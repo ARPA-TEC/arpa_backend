@@ -1,4 +1,3 @@
-DROP DATABASE IF EXISTS `arpa-backend`;
 CREATE DATABASE IF NOT EXISTS `arpa-backend`;
 USE `arpa-backend`;
 

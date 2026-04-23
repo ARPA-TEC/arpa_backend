@@ -4,24 +4,34 @@ Guia de uso de todas las rutas del backend ARPA.
 
 ## 1. Requisitos previos
 
-1. Tener MariaDB/MySQL levantado.
-2. Haber ejecutado el script SQL:
+1. Tener Docker y Docker Compose instalados.
+2. Levantar los servicios:
 
 ~~~bash
-mysql -u lambda -p < src/db/init.sql
+docker compose up --build
 ~~~
 
-3. Tener variables de entorno configuradas en .env.
-4. Levantar el servidor:
+3. Esperar a que la API quede disponible en:
 
-~~~bash
-npm run dev
+~~~text
+http://localhost:3000
 ~~~
 
 Base URL usada en ejemplos:
 
 ~~~text
 http://localhost:3000
+~~~
+
+Notas importantes:
+
+- MariaDB corre en `localhost:3307`.
+- El esquema SQL se inicializa automaticamente con `docker/db/init/01-init-schema.sql` solo en la primera creacion del volumen.
+- Si necesitas reiniciar la base desde cero:
+
+~~~bash
+docker compose down -v
+docker compose up --build
 ~~~
 
 ## 2. Crear usuarios por rol
@@ -313,3 +323,27 @@ Respuesta esperada (200) para administrador:
 ~~~
 
 Si entra un rol diferente, la API responde 403.
+
+## 5. Flujo alternativo sin Docker (opcional)
+
+Si no quieres usar Docker, puedes levantar el proyecto manualmente:
+
+1. Instalar dependencias:
+
+~~~bash
+npm install
+~~~
+
+2. Configurar `.env` desde `.env.example`.
+
+3. Levantar MariaDB y crear esquema:
+
+~~~bash
+mysql -u root -p < src/db/init.sql
+~~~
+
+4. Iniciar API:
+
+~~~bash
+npm run dev
+~~~
