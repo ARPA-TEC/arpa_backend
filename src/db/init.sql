@@ -16,6 +16,20 @@ CREATE TABLE users (
   UNIQUE KEY uq_student_login_id (student_login_id)
 );
 
+CREATE TABLE refresh_tokens (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  token_hash VARCHAR(255) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  revoked BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_expires_at (expires_at)
+);
+
 CREATE TABLE coordinadores (
   id_coordinador INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario INT UNSIGNED NOT NULL,
