@@ -97,13 +97,17 @@ async function createTutor(req, res) {
     horas_servicio_social: horasServicioSocialRaw,
   } = req.body;
 
-  if ([nombre, apellido, email, password, horasServicioSocialRaw].some(isEmpty)) {
+  if ([nombre, apellido, email, password].some(isEmpty)) {
     return res
       .status(400)
-      .json({ message: 'nombre, apellido, email, password y horas_servicio_social son obligatorios.' });
+      .json({ message: 'nombre, apellido, email y password son obligatorios.' });
   }
 
-  const horasServicioSocial = Number(horasServicioSocialRaw);
+  const hasHorasServicioSocial =
+    horasServicioSocialRaw !== undefined &&
+    horasServicioSocialRaw !== null &&
+    String(horasServicioSocialRaw).trim() !== '';
+  const horasServicioSocial = hasHorasServicioSocial ? Number(horasServicioSocialRaw) : 1;
 
   if (Number.isNaN(horasServicioSocial) || horasServicioSocial <= 0) {
     return res

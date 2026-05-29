@@ -42,7 +42,7 @@ CREATE TABLE coordinadores (
 CREATE TABLE tutores (
   id_tutor INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario INT UNSIGNED NOT NULL,
-  horas_servicio_social DECIMAL(5,2) NOT NULL,
+  horas_servicio_social DECIMAL(5,2) NOT NULL DEFAULT 1.00,
   horas_acumuladas INT UNSIGNED NOT NULL DEFAULT 0,
   horas_requeridas INT UNSIGNED NOT NULL DEFAULT 160,
   estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo',
