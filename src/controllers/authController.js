@@ -4,16 +4,18 @@ const { query } = require('../config/db');
 const { ROLE } = require('./userController');
 
 function signToken(user) {
-  return jwt.sign(
-    {
-      id: user.id,
-      role: user.role,
-      nombre: user.nombre,
-      apellido: user.apellido,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN },
-  );
+  const payload = {
+    id: user.id,
+    role: user.role,
+    nombre: user.nombre,
+    apellido: user.apellido,
+  };
+
+  if (user.horas_servicio_social !== undefined) {
+    payload.horas_servicio_social = Number(user.horas_servicio_social);
+  }
+
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 }
 
 function isEmpty(value) {
@@ -70,10 +72,14 @@ async function loginTutor(req, res) {
   }
 
   try {
-    const users = await query('SELECT * FROM users WHERE role = ? AND email = ? LIMIT 1', [
-      ROLE.TUTOR,
-      email.trim().toLowerCase(),
-    ]);
+    const users = await query(
+      `SELECT users.*, tutores.horas_servicio_social
+       FROM users
+       JOIN tutores ON tutores.id_usuario = users.id
+       WHERE users.role = ? AND users.email = ?
+       LIMIT 1`,
+      [ROLE.TUTOR, email.trim().toLowerCase()],
+    );
 
     if (!users.length) {
       return res.status(401).json({ message: 'Credenciales invalidas.' });
@@ -97,6 +103,7 @@ async function loginTutor(req, res) {
         nombre: user.nombre,
         apellido: user.apellido,
         email: user.email,
+        horas_servicio_social: Number(user.horas_servicio_social),
       },
     });
   } catch (error) {

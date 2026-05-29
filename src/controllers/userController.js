@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { query } = require('../config/db');
+const { query, pool } = require('../config/db');
 
 const ROLE = {
   ADMIN: 'ADMINISTRADOR',
@@ -89,19 +89,45 @@ async function createAdmin(req, res) {
 }
 
 async function createTutor(req, res) {
-  const { nombre, apellido, email, password } = req.body;
+  const {
+    nombre,
+    apellido,
+    email,
+    password,
+    horas_servicio_social: horasServicioSocialRaw,
+  } = req.body;
 
-  if ([nombre, apellido, email, password].some(isEmpty)) {
-    return res.status(400).json({ message: 'nombre, apellido, email y password son obligatorios.' });
+  if ([nombre, apellido, email, password, horasServicioSocialRaw].some(isEmpty)) {
+    return res
+      .status(400)
+      .json({ message: 'nombre, apellido, email, password y horas_servicio_social son obligatorios.' });
   }
 
+  const horasServicioSocial = Number(horasServicioSocialRaw);
+
+  if (Number.isNaN(horasServicioSocial) || horasServicioSocial <= 0) {
+    return res
+      .status(400)
+      .json({ message: 'horas_servicio_social debe ser un numero mayor a 0.' });
+  }
+
+  const connection = await pool.getConnection();
+
   try {
+    await connection.beginTransaction();
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const result = await query(
+    const [result] = await connection.execute(
       'INSERT INTO users (role, nombre, apellido, email, password_hash) VALUES (?, ?, ?, ?, ?)',
       [ROLE.TUTOR, nombre.trim(), apellido.trim(), email.trim().toLowerCase(), passwordHash],
     );
+
+    await connection.execute(
+      'INSERT INTO tutores (id_usuario, horas_servicio_social) VALUES (?, ?)',
+      [result.insertId, horasServicioSocial],
+    );
+
+    await connection.commit();
 
     return res.status(201).json({
       message: 'Tutor creado correctamente.',
@@ -111,14 +137,19 @@ async function createTutor(req, res) {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         email: email.trim().toLowerCase(),
+        horas_servicio_social: horasServicioSocial,
       },
     });
   } catch (error) {
+    await connection.rollback();
+
     if (error && error.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ message: 'El email ya esta registrado.' });
     }
 
     return res.status(500).json({ message: 'Error al crear tutor.', error: error.message });
+  } finally {
+    connection.release();
   }
 }
 

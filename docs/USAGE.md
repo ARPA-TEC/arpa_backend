@@ -85,6 +85,7 @@ Body requerido:
 - apellido
 - email
 - password
+- horas_servicio_social
 
 Ejemplo:
 
@@ -95,7 +96,8 @@ curl -X POST http://localhost:3000/api/users/tutores \
     "nombre": "Roberto",
     "apellido": "Ponce",
     "email": "roberto.tutor@arpa.com",
-    "password": "123456"
+    "password": "123456",
+    "horas_servicio_social": 1.5
   }'
 ~~~
 
@@ -109,7 +111,8 @@ Respuesta esperada (201):
     "role": "TUTOR",
     "nombre": "Roberto",
     "apellido": "Ponce",
-    "email": "roberto.tutor@arpa.com"
+    "email": "roberto.tutor@arpa.com",
+    "horas_servicio_social": 1.5
   }
 }
 ~~~
@@ -226,7 +229,8 @@ Respuesta esperada (200):
     "role": "TUTOR",
     "nombre": "Oriana",
     "apellido": "Vega",
-    "email": "luis.tutor@arpa.com"
+    "email": "luis.tutor@arpa.com",
+    "horas_servicio_social": 1.5
   }
 }
 ~~~
