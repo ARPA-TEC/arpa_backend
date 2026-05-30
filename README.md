@@ -173,3 +173,25 @@ Base URL: `http://localhost:3000`
 	- Solo permite `ADMINISTRADOR`.
 	- Header:
 		- `Authorization: Bearer TU_TOKEN`
+
+### Datos para dashboards
+
+- `GET /api/students`
+	- Solo `ADMINISTRADOR`.
+	- Devuelve la lista para el tab de estudiantes del dashboard admin.
+
+- `GET /api/tutors`
+	- Solo `ADMINISTRADOR`.
+	- Devuelve la lista para el tab de tutores del dashboard admin.
+
+- `GET /api/students/me`
+	- Solo `ALUMNO`.
+	- Devuelve tutor y progreso del alumno autenticado.
+
+- `GET /api/tutors/me`
+	- Solo `TUTOR`.
+	- Devuelve el dashboard del tutor autenticado.
+
+- `POST /api/tutors/me/bitacoras`
+	- Solo `TUTOR`.
+	- Crea una bitacora y actualiza las horas acumuladas en una transaccion.
