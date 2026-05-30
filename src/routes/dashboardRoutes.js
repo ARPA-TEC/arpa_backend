@@ -5,6 +5,7 @@ const {
   getStudentDashboard,
   getTutorDashboard,
   addTutorBitacora,
+  createStudent,
 } = require('../controllers/dashboardController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
@@ -16,5 +17,5 @@ router.get('/students/me', requireAuth, requireRole('ALUMNO'), getStudentDashboa
 router.get('/tutors', requireAuth, requireRole('ADMINISTRADOR'), getAdminTutors);
 router.get('/tutors/me', requireAuth, requireRole('TUTOR'), getTutorDashboard);
 router.post('/tutors/me/bitacoras', requireAuth, requireRole('TUTOR'), addTutorBitacora);
-
+router.post('/students', requireAuth, requireRole('ADMINISTRADOR'), createStudent);
 module.exports = router;

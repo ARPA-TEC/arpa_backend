@@ -17,6 +17,18 @@ function toNumber(value) {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function normalizeChunk(value) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function firstWord(value) {
+  return value.trim().split(/\s+/)[0] || '';
+}
+
 function formatDate(value) {
   if (!value) {
     return null;
@@ -68,6 +80,7 @@ function buildStudentCard(studentRow, progressByUserId) {
 function buildTutorCard(tutorRow, logsByTutorId) {
   return {
     id: Number(tutorRow.user_id),
+    id_tutor: Number(tutorRow.id_tutor),
     name: `${tutorRow.nombre} ${tutorRow.apellido}`,
     email: tutorRow.email,
     matricula: tutorRow.matricula || `T-${tutorRow.id_tutor}`,
@@ -425,10 +438,77 @@ async function addTutorBitacora(req, res) {
   }
 }
 
+async function createStudent(req, res) {
+  const { nombre, apellido, id_tutor, id_nivel } = req.body;
+
+  if ([nombre, apellido, id_tutor, id_nivel].some(isEmpty)) {
+    return res.status(400).json({
+      message: 'nombre, apellido, id_tutor e id_nivel son obligatorios.',
+    });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. Generar student_login_id único
+    const base = `${normalizeChunk(firstWord(nombre))}${normalizeChunk(firstWord(apellido))}`;
+    const [existing] = await connection.execute(
+      'SELECT student_login_id FROM users WHERE role = ? AND student_login_id LIKE ?',
+      [ROLE.STUDENT, `${base}%`],
+    );
+
+    let maxIncrement = 0;
+    for (const row of existing) {
+      const match = row.student_login_id?.match(new RegExp(`^${base}(\\d+)$`));
+      if (match) {
+        const val = Number(match[1]);
+        if (!Number.isNaN(val) && val > maxIncrement) maxIncrement = val;
+      }
+    }
+    const studentLoginId = `${base}${maxIncrement + 1}`;
+
+    // 2. Insertar en users
+    const [userResult] = await connection.execute(
+      'INSERT INTO users (role, nombre, apellido, student_login_id) VALUES (?, ?, ?, ?)',
+      [ROLE.STUDENT, nombre.trim(), apellido.trim(), studentLoginId],
+    );
+    const userId = Number(userResult.insertId);
+
+    // 3. Insertar en estudiantes
+    await connection.execute(
+      'INSERT INTO estudiantes (id_usuario, id_tutor, id_nivel) VALUES (?, ?, ?)',
+      [userId, id_tutor, id_nivel],
+    );
+
+    await connection.commit();
+
+    return res.status(201).json({
+      message: 'Estudiante creado correctamente.',
+      student: {
+        id: userId,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        student_login_id: studentLoginId,
+        id_tutor: Number(id_tutor),
+        id_nivel: Number(id_nivel),
+      },
+    });
+  } catch (error) {
+    await connection.rollback();
+    return res.status(500).json({ message: 'Error al crear estudiante.', error: error.message });
+  } finally {
+    connection.release();
+  }
+}
+
+
 module.exports = {
   getAdminStudents,
   getAdminTutors,
   getStudentDashboard,
   getTutorDashboard,
   addTutorBitacora,
+  createStudent,
 };
