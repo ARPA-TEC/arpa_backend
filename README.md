@@ -102,6 +102,7 @@ Base URL: `http://localhost:3000`
 		```
 
 - `POST /api/users/tutores`
+
 	- Body:
 		```json
 		{
@@ -180,15 +181,7 @@ Base URL: `http://localhost:3000`
 	- Solo `ADMINISTRADOR`.
 	- Devuelve la lista para el tab de estudiantes del dashboard admin.
 	- Crea un alumno y lo asigna a un tutor y nivel.
-  - Body:
-```json
-    {
-      "nombre": "Laura",
-      "apellido": "Montes",
-      "id_tutor": 2,
-      "id_nivel": 2
-    }
-```
+  
   - Respuesta incluye `student_login_id` generado automáticamente.
 
 - `GET /api/tutors`
