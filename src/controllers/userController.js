@@ -94,6 +94,7 @@ async function createTutor(req, res) {
     apellido,
     email,
     password,
+    matricula,
     horas_servicio_social: horasServicioSocialRaw,
   } = req.body;
 
@@ -126,9 +127,9 @@ async function createTutor(req, res) {
       [ROLE.TUTOR, nombre.trim(), apellido.trim(), email.trim().toLowerCase(), passwordHash],
     );
 
-    await connection.execute(
-      'INSERT INTO tutores (id_usuario, horas_servicio_social) VALUES (?, ?)',
-      [result.insertId, horasServicioSocial],
+    const [tutorResult] = await connection.execute(
+      'INSERT INTO tutores (id_usuario, matricula, horas_servicio_social) VALUES (?, ?, ?)',
+      [result.insertId, matricula?.trim() || null, horasServicioSocial],
     );
 
     await connection.commit();
@@ -137,11 +138,13 @@ async function createTutor(req, res) {
       message: 'Tutor creado correctamente.',
       user: {
         id: Number(result.insertId),
+        id_tutor: Number(tutorResult.insertId),
         role: ROLE.TUTOR,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         email: email.trim().toLowerCase(),
         horas_servicio_social: horasServicioSocial,
+        matricula: matricula?.trim() || null,
       },
     });
   } catch (error) {

@@ -1,30 +1,37 @@
 const { query, pool } = require('../config/db');
 const { ROLE } = require('./userController');
+
 const SKILL_LABELS = {
   comprension_lectora: 'Reading',
   expresion_oral: 'Speaking',
   comprension_auditiva: 'Listening',
   expresion_escrita: 'Writing',
 };
+
 function isEmpty(value) {
   return !value || String(value).trim() === '';
 }
+
 function toNumber(value) {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
+
 function normalizeChunk(value) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
+
 function firstWord(value) {
   return value.trim().split(/\s+/)[0] || '';
 }
+
 function formatDate(value) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString('es-MX');
 }
+
 function buildSkillMap(rows, keyField) {
   return rows.reduce((acc, row) => {
     if (!acc[row[keyField]]) acc[row[keyField]] = {};
@@ -33,6 +40,7 @@ function buildSkillMap(rows, keyField) {
     return acc;
   }, {});
 }
+
 function buildStudentCard(studentRow, progressByUserId) {
   const card = {
     id: Number(studentRow.user_id),
@@ -47,17 +55,19 @@ function buildStudentCard(studentRow, progressByUserId) {
   if (studentRow.tutor_email) card.tutor_email = studentRow.tutor_email;
   return card;
 }
+
 function buildTutorCard(tutorRow, logsByTutorId) {
   return {
     id: Number(tutorRow.user_id),
     id_tutor: Number(tutorRow.id_tutor),
     name: `${tutorRow.nombre} ${tutorRow.apellido}`,
     email: tutorRow.email,
-    matricula: tutorRow.matricula || `T-${tutorRow.id_tutor}`,
+    matricula: tutorRow.matricula ?? null,
     hrs: toNumber(tutorRow.horas_acumuladas),
     logs: logsByTutorId[tutorRow.id_tutor] || [],
   };
 }
+
 async function getAdminStudents(req, res) {
   const [students, progressRows] = await Promise.all([
     query(
@@ -84,11 +94,12 @@ async function getAdminStudents(req, res) {
   const progressByUserId = buildSkillMap(progressRows, 'user_id');
   return res.status(200).json({ students: students.map((s) => buildStudentCard(s, progressByUserId)) });
 }
+
 async function getAdminTutors(req, res) {
-  const [tutors, bitacoras] = await Promise.all([
+  const [tutors, bitacoras, horasExtras] = await Promise.all([
     query(
       `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
-         tu.id_tutor, tu.horas_acumuladas, tu.horas_requeridas, tu.estado
+         tu.id_tutor, tu.matricula, tu.horas_acumuladas, tu.horas_requeridas, tu.estado
        FROM tutores tu
        JOIN users u ON u.id = tu.id_usuario
        WHERE u.role = ? AND u.activo = TRUE ORDER BY u.nombre, u.apellido`,
@@ -102,19 +113,41 @@ async function getAdminTutors(req, res) {
        JOIN users stu_u ON stu_u.id = e.id_usuario
        ORDER BY b.fecha_registro DESC, b.id_bitacora DESC`,
     ),
+    query(
+      `SELECT he.id_tutor, he.fecha, he.horas, he.motivo, u.nombre AS admin_nombre
+       FROM horas_extras he
+       JOIN users u ON u.id = he.agregado_por
+       ORDER BY he.fecha_registro DESC`,
+    ),
   ]);
-  const logsByTutorId = bitacoras.reduce((acc, row) => {
-    if (!acc[row.id_tutor]) acc[row.id_tutor] = [];
-    acc[row.id_tutor].push({
+
+  const logsByTutorId = {};
+
+  for (const row of bitacoras) {
+    if (!logsByTutorId[row.id_tutor]) logsByTutorId[row.id_tutor] = [];
+    logsByTutorId[row.id_tutor].push({
       ref: `${row.estudiante_nombre} ${row.estudiante_apellido}`,
       date: formatDate(row.fecha_sesion),
       duration: toNumber(row.duracion_horas),
       notes: row.notas,
     });
-    return acc;
-  }, {});
-  return res.status(200).json({ tutors: tutors.map((t) => buildTutorCard(t, logsByTutorId)) });
+  }
+
+  for (const row of horasExtras) {
+    if (!logsByTutorId[row.id_tutor]) logsByTutorId[row.id_tutor] = [];
+    logsByTutorId[row.id_tutor].push({
+      motivo: row.motivo,
+      fecha: formatDate(row.fecha),
+      horas: toNumber(row.horas),
+      agregado_por: row.admin_nombre,
+    });
+  }
+
+  return res.status(200).json({
+    tutors: tutors.map((tutorRow) => buildTutorCard(tutorRow, logsByTutorId)),
+  });
 }
+
 async function getStudentDashboard(req, res) {
   const studentMatches = await query(
     `SELECT u.id AS user_id, u.nombre, u.apellido, u.student_login_id,
@@ -145,6 +178,7 @@ async function getStudentDashboard(req, res) {
     progress: { level: studentRow.nivel, skills: progress },
   });
 }
+
 async function getTutorDashboard(req, res) {
   const tutorRows = await query(
     `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
@@ -221,12 +255,14 @@ async function getTutorDashboard(req, res) {
     })),
   });
 }
+
 async function addTutorBitacora(req, res) {
   const idEstudiante = req.body.id_estudiante ?? req.body.student_id;
   const fechaSesion = req.body.fecha_sesion ?? req.body.fecha;
   const duracionHoras = req.body.duracion_horas ?? req.body.duracion;
   const notas = req.body.notas ?? '';
   const evidenciaUrl = req.body.evidencia_url ?? null;
+
   if ([idEstudiante, fechaSesion, duracionHoras].some(isEmpty)) {
     return res.status(400).json({ message: 'id_estudiante, fecha_sesion y duracion_horas son obligatorios.' });
   }
@@ -234,6 +270,7 @@ async function addTutorBitacora(req, res) {
   if (Number.isNaN(parsedDuration) || parsedDuration <= 0) {
     return res.status(400).json({ message: 'duracion_horas debe ser un numero mayor a 0.' });
   }
+
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -283,6 +320,7 @@ async function addTutorBitacora(req, res) {
     connection.release();
   }
 }
+
 async function createStudent(req, res) {
   const { nombre, apellido, id_tutor, id_nivel } = req.body;
   if ([nombre, apellido, id_tutor, id_nivel].some(isEmpty)) {
@@ -326,6 +364,7 @@ async function createStudent(req, res) {
     connection.release();
   }
 }
+
 async function updateStudentSkill(req, res) {
   const { id_estudiante, habilidad, puntuacion } = req.body;
   if (!id_estudiante || !habilidad || puntuacion === undefined) {
@@ -375,6 +414,7 @@ async function updateStudentSkill(req, res) {
     connection.release();
   }
 }
+
 async function createIncidencia(req, res) {
   const { id_bitacora, descripcion } = req.body;
   const evidenciaUrl = req.body.evidencia_url ?? null;
@@ -414,6 +454,56 @@ async function createIncidencia(req, res) {
     connection.release();
   }
 }
+
+async function addHorasExtras(req, res) {
+  const { id } = req.params;
+  const { fecha, horas, motivo } = req.body;
+
+  if ([fecha, horas, motivo].some(isEmpty)) {
+    return res.status(400).json({ message: 'fecha, horas y motivo son obligatorios.' });
+  }
+  const parsedHoras = Number(horas);
+  if (Number.isNaN(parsedHoras) || parsedHoras <= 0) {
+    return res.status(400).json({ message: 'horas debe ser un numero mayor a 0.' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const tutorRows = await connection.execute(
+      'SELECT id_tutor FROM tutores WHERE id_tutor = ? LIMIT 1',
+      [id],
+    );
+    if (!tutorRows[0].length) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Tutor no encontrado.' });
+    }
+    await connection.execute(
+      `INSERT INTO horas_extras (id_tutor, agregado_por, fecha, horas, motivo) VALUES (?, ?, ?, ?, ?)`,
+      [id, req.user.id, fecha, parsedHoras, motivo.trim()],
+    );
+    await connection.execute(
+      `UPDATE tutores SET horas_acumuladas = horas_acumuladas + ? WHERE id_tutor = ?`,
+      [parsedHoras, id],
+    );
+    await connection.commit();
+    return res.status(201).json({
+      message: 'Horas extras agregadas correctamente.',
+      horas_extras: {
+        id_tutor: Number(id),
+        fecha,
+        horas: parsedHoras,
+        motivo: motivo.trim(),
+      },
+    });
+  } catch (error) {
+    await connection.rollback();
+    return res.status(500).json({ message: 'Error al agregar horas extras.', error: error.message });
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   getAdminStudents,
   getAdminTutors,
@@ -423,4 +513,5 @@ module.exports = {
   createStudent,
   updateStudentSkill,
   createIncidencia,
+  addHorasExtras,
 };
