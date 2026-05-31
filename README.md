@@ -110,6 +110,7 @@ Base URL: `http://localhost:3000`
 			"apellido": "Martinez",
 			"email": "luis.tutor@arpa.com",
 			"password": "123456",
+			"matricula": "A01738027",
 			"horas_servicio_social": 1.5
 		}
 		```

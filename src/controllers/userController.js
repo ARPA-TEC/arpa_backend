@@ -94,6 +94,7 @@ async function createTutor(req, res) {
     apellido,
     email,
     password,
+    matricula,
     horas_servicio_social: horasServicioSocialRaw,
   } = req.body;
 
@@ -127,8 +128,8 @@ async function createTutor(req, res) {
     );
 
     await connection.execute(
-      'INSERT INTO tutores (id_usuario, horas_servicio_social) VALUES (?, ?)',
-      [result.insertId, horasServicioSocial],
+      'INSERT INTO tutores (id_usuario, matricula, horas_servicio_social) VALUES (?, ?, ?)',
+      [result.insertId, matricula?.trim() || null, horasServicioSocial],
     );
 
     await connection.commit();
@@ -142,6 +143,7 @@ async function createTutor(req, res) {
         apellido: apellido.trim(),
         email: email.trim().toLowerCase(),
         horas_servicio_social: horasServicioSocial,
+        matricula: matricula?.trim() || null,
       },
     });
   } catch (error) {

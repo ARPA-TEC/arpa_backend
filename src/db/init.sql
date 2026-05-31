@@ -42,6 +42,7 @@ CREATE TABLE coordinadores (
 CREATE TABLE tutores (
   id_tutor INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario INT UNSIGNED NOT NULL,
+  matricula VARCHAR(10) NULL,
   horas_servicio_social DECIMAL(5,2) NOT NULL DEFAULT 1.00,
   horas_acumuladas INT UNSIGNED NOT NULL DEFAULT 0,
   horas_requeridas INT UNSIGNED NOT NULL DEFAULT 160,
@@ -163,10 +164,10 @@ VALUES
   (1, 1),
   (2, 6);
 
-INSERT INTO tutores (id_tutor, id_usuario, horas_servicio_social, horas_acumuladas, horas_requeridas, estado)
+INSERT INTO tutores (id_tutor, id_usuario, matricula, horas_servicio_social, horas_acumuladas, horas_requeridas, estado)
 VALUES
-  (1, 2, 1.00, 42, 160, 'activo'),
-  (2, 4, 1.00, 18, 160, 'activo');
+  (1, 2, 'A01738001', 1.00, 42, 160, 'activo'),
+  (2, 4, 'A01738002', 1.00, 18, 160, 'activo');
 
 
 INSERT INTO nivel_idioma (id_nivel, codigo_mcer, idioma, descripcion)

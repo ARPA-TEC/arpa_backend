@@ -83,7 +83,7 @@ function buildTutorCard(tutorRow, logsByTutorId) {
     id_tutor: Number(tutorRow.id_tutor),
     name: `${tutorRow.nombre} ${tutorRow.apellido}`,
     email: tutorRow.email,
-    matricula: tutorRow.matricula || `T-${tutorRow.id_tutor}`,
+    matricula: tutorRow.matricula ?? null,
     hrs: toNumber(tutorRow.horas_acumuladas),
     logs: logsByTutorId[tutorRow.id_tutor] || [],
   };
@@ -142,6 +142,7 @@ async function getAdminTutors(req, res) {
          u.apellido,
          u.email,
          tu.id_tutor,
+         tu.matricula,
          tu.horas_acumuladas,
          tu.horas_requeridas,
          tu.estado
