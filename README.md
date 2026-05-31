@@ -199,3 +199,9 @@ Base URL: `http://localhost:3000`
 - `POST /api/tutors/me/bitacoras`
 	- Solo `TUTOR`.
 	- Crea una bitacora y actualiza las horas acumuladas en una transaccion.
+
+- `POST /api/tutors/:id/horas-extras`
+  - Solo `ADMINISTRADOR`.
+  - Agrega horas extras a un tutor y actualiza sus horas acumuladas.
+  - `:id` es el `id_tutor` del tutor.
+  - El campo `agregado_por` se registra automáticamente del token JWT.

@@ -107,6 +107,22 @@ CREATE TABLE incidencias (
     ON DELETE CASCADE
 );
 
+CREATE TABLE horas_extras (
+  id_horas_extras INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id_tutor INT UNSIGNED NOT NULL,
+  agregado_por INT UNSIGNED NOT NULL,
+  fecha DATE NOT NULL,
+  horas DECIMAL(5,2) NOT NULL,
+  motivo TEXT NOT NULL,
+  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_tutor) REFERENCES tutores(id_tutor)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  FOREIGN KEY (agregado_por) REFERENCES users(id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
 CREATE TABLE progreso_estudiante (
   id_progreso INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_estudiante INT UNSIGNED NOT NULL,
