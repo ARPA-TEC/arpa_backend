@@ -9,6 +9,7 @@ const {
   updateStudentSkill,
   createIncidencia,
   addHorasExtras,
+  updateClaseUrl, 
 } = require('../controllers/dashboardController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -22,5 +23,6 @@ router.put('/tutors/me/students/:id_estudiante/skills', requireAuth, requireRole
 router.post('/tutors/me/incidencias', requireAuth, requireRole('TUTOR'), createIncidencia);
 router.post('/students', requireAuth, requireRole('ADMINISTRADOR'), createStudent);
 router.post('/tutors/:id/horas-extras', requireAuth, requireRole('ADMINISTRADOR'), addHorasExtras);
+router.put('/tutors/me/clase-url', requireAuth, requireRole('TUTOR'), updateClaseUrl);
 
 module.exports = router;

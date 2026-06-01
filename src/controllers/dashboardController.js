@@ -65,6 +65,7 @@ function buildTutorCard(tutorRow, logsByTutorId) {
     matricula: tutorRow.matricula ?? null,
     hrs: toNumber(tutorRow.horas_acumuladas),
     logs: logsByTutorId[tutorRow.id_tutor] || [],
+    clase_url: tutorRow.clase_url ?? null,
   };
 }
 
@@ -72,7 +73,7 @@ async function getAdminStudents(req, res) {
   const [students, progressRows] = await Promise.all([
     query(
       `SELECT u.id AS user_id, u.nombre, u.apellido, u.student_login_id, e.id_estudiante,
-         n.codigo_mcer AS nivel, tu.id_tutor, tu.horas_acumuladas,
+         n.codigo_mcer AS nivel, tu.id_tutor, tu.horas_acumuladas, tu.clase_url
          tutor_user.nombre AS tutor_nombre, tutor_user.apellido AS tutor_apellido, tutor_user.email AS tutor_email
        FROM users u
        JOIN estudiantes e ON e.id_usuario = u.id
@@ -504,6 +505,22 @@ async function addHorasExtras(req, res) {
   }
 }
 
+async function updateClaseUrl(req, res) {
+  const { clase_url } = req.body;
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute(
+      `UPDATE tutores SET clase_url = ? WHERE id_usuario = ?`,
+      [clase_url ?? null, req.user.id]
+    );
+    return res.status(200).json({ message: 'Link actualizado correctamente.', clase_url: clase_url ?? null });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al actualizar link.', error: error.message });
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   getAdminStudents,
   getAdminTutors,
@@ -514,4 +531,5 @@ module.exports = {
   updateStudentSkill,
   createIncidencia,
   addHorasExtras,
+  updateClaseUrl,
 };
