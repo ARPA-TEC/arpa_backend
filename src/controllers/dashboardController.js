@@ -73,7 +73,7 @@ async function getAdminStudents(req, res) {
   const [students, progressRows] = await Promise.all([
     query(
       `SELECT u.id AS user_id, u.nombre, u.apellido, u.student_login_id, e.id_estudiante,
-         n.codigo_mcer AS nivel, tu.id_tutor, tu.horas_acumuladas, tu.clase_url
+         n.codigo_mcer AS nivel, tu.id_tutor, tu.horas_acumuladas, tu.clase_url,
          tutor_user.nombre AS tutor_nombre, tutor_user.apellido AS tutor_apellido, tutor_user.email AS tutor_email
        FROM users u
        JOIN estudiantes e ON e.id_usuario = u.id
@@ -100,7 +100,12 @@ async function getAdminTutors(req, res) {
   const [tutors, bitacoras, horasExtras] = await Promise.all([
     query(
       `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
-         tu.id_tutor, tu.matricula, tu.horas_acumuladas, tu.horas_requeridas, tu.estado
+        tu.id_tutor,
+        tu.matricula,
+        tu.horas_acumuladas,
+        tu.horas_requeridas,
+        tu.estado,
+        tu.clase_url
        FROM tutores tu
        JOIN users u ON u.id = tu.id_usuario
        WHERE u.role = ? AND u.activo = TRUE ORDER BY u.nombre, u.apellido`,
@@ -153,7 +158,7 @@ async function getStudentDashboard(req, res) {
   const studentMatches = await query(
     `SELECT u.id AS user_id, u.nombre, u.apellido, u.student_login_id,
        n.codigo_mcer AS nivel, tutor_user.nombre AS tutor_nombre,
-       tutor_user.apellido AS tutor_apellido, tutor_user.email AS tutor_email, e.id_estudiante
+       tutor_user.apellido AS tutor_apellido, tutor_user.email AS tutor_email, tu.clase_url, e.id_estudiante
      FROM users u
      JOIN estudiantes e ON e.id_usuario = u.id
      JOIN tutores tu ON tu.id_tutor = e.id_tutor
@@ -175,7 +180,7 @@ async function getStudentDashboard(req, res) {
   }, {});
   return res.status(200).json({
     student: { id: Number(studentRow.user_id), name: `${studentRow.nombre} ${studentRow.apellido}`, login_id: studentRow.student_login_id },
-    tutor: { name: `${studentRow.tutor_nombre} ${studentRow.tutor_apellido}`, email: studentRow.tutor_email },
+    tutor: { name: `${studentRow.tutor_nombre} ${studentRow.tutor_apellido}`, email: studentRow.tutor_email, meet_link: studentRow.clase_url },
     progress: { level: studentRow.nivel, skills: progress },
   });
 }
@@ -183,10 +188,11 @@ async function getStudentDashboard(req, res) {
 async function getTutorDashboard(req, res) {
   const tutorRows = await query(
     `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
-       tu.id_tutor, tu.horas_acumuladas, tu.horas_requeridas
-     FROM users u
-     JOIN tutores tu ON tu.id_usuario = u.id
-     WHERE u.id = ? AND u.role = ? AND u.activo = TRUE LIMIT 1`,
+    tu.id_tutor, tu.horas_acumuladas, tu.horas_requeridas, tu.clase_url
+    FROM users u
+    JOIN tutores tu ON tu.id_usuario = u.id
+    WHERE u.id = ? AND u.role = ? AND u.activo = TRUE
+    LIMIT 1`,
     [req.user.id, ROLE.TUTOR],
   );
   if (!tutorRows.length) return res.status(404).json({ message: 'Tutor no encontrado.' });
@@ -237,6 +243,7 @@ async function getTutorDashboard(req, res) {
       email: tutorRow.email,
       horas_completadas: toNumber(tutorRow.horas_acumuladas),
       horas_total: toNumber(tutorRow.horas_requeridas),
+      clase_url: tutorRow.clase_url ?? null,
     },
     students: studentRows.map((s) => buildStudentCard(s, progressByUserId)),
     bitacoras: bitacoras.map((row) => ({
