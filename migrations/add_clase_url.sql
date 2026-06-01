@@ -1,0 +1,2 @@
+ALTER TABLE tutores
+ADD COLUMN clase_url VARCHAR(255) NULL;
