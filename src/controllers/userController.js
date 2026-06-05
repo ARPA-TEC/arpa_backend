@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { query, pool } = require('../config/db');
+const { getActiveSemester, ensureTutorEnrollment } = require('../utils/semester');
 
 const ROLE = {
   ADMIN: 'ADMINISTRADOR',
@@ -132,6 +133,13 @@ async function createTutor(req, res) {
       [result.insertId, matricula?.trim() || null, horasServicioSocial],
     );
 
+    const activeSemester = await getActiveSemester(connection);
+    if (!activeSemester) {
+      throw new Error('No existe un semestre activo para inscribir al tutor.');
+    }
+
+    await ensureTutorEnrollment(connection, Number(tutorResult.insertId), activeSemester.id_semestre, true);
+
     await connection.commit();
 
     return res.status(201).json({
@@ -145,6 +153,7 @@ async function createTutor(req, res) {
         email: email.trim().toLowerCase(),
         horas_servicio_social: horasServicioSocial,
         matricula: matricula?.trim() || null,
+        id_semestre: activeSemester.id_semestre,
       },
     });
   } catch (error) {

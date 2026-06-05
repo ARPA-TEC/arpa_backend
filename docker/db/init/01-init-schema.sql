@@ -15,6 +15,17 @@ CREATE TABLE users (
   UNIQUE KEY uq_student_login_id (student_login_id)
 );
 
+CREATE TABLE semestres (
+  id_semestre INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(20) NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NOT NULL,
+  activo BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_semestre_codigo (codigo)
+);
+
 CREATE TABLE coordinadores (
   id_coordinador INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_usuario INT UNSIGNED NOT NULL,
@@ -38,6 +49,20 @@ CREATE TABLE tutores (
   UNIQUE KEY uq_tutores_usuario (id_usuario)
 );
 
+CREATE TABLE tutor_semestres (
+  id_tutor INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
+  es_principal BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_tutor, id_semestre),
+  FOREIGN KEY (id_tutor) REFERENCES tutores(id_tutor)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  FOREIGN KEY (id_semestre) REFERENCES semestres(id_semestre)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
 CREATE TABLE nivel_idioma (
   id_nivel INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   codigo_mcer ENUM('A1', 'A2', 'B1', 'B2', 'C1', 'C2') NOT NULL,
@@ -51,6 +76,7 @@ CREATE TABLE estudiantes (
   id_usuario INT UNSIGNED NOT NULL,
   id_tutor INT UNSIGNED NOT NULL,
   id_nivel INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
   fecha_asignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_usuario) REFERENCES users(id)
     ON UPDATE CASCADE
@@ -61,13 +87,17 @@ CREATE TABLE estudiantes (
   FOREIGN KEY (id_nivel) REFERENCES nivel_idioma(id_nivel)
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
-  UNIQUE KEY uq_estudiantes_usuario (id_usuario)
+  FOREIGN KEY (id_semestre) REFERENCES semestres(id_semestre)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  UNIQUE KEY uq_estudiantes_usuario_semestre (id_usuario, id_semestre)
 );
 
 CREATE TABLE bitacoras (
   id_bitacora INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_tutor INT UNSIGNED NOT NULL,
   id_estudiante INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
   fecha_sesion DATE NOT NULL,
   duracion_horas DECIMAL(5,2) NOT NULL,
   notas TEXT NULL,
@@ -78,30 +108,41 @@ CREATE TABLE bitacoras (
     ON DELETE RESTRICT,
   FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante)
     ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  FOREIGN KEY (id_semestre) REFERENCES semestres(id_semestre)
+    ON UPDATE CASCADE
     ON DELETE RESTRICT
 );
 
 CREATE TABLE incidencias (
   id_incidencia INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_bitacora INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
   fecha_incidente DATE NOT NULL,
   descripcion TEXT NOT NULL,
   firma_tutor VARCHAR(255) NULL,
   fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_bitacora) REFERENCES bitacoras(id_bitacora)
     ON UPDATE CASCADE
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  FOREIGN KEY (id_semestre) REFERENCES semestres(id_semestre)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
 );
 
 CREATE TABLE horas_extras (
   id_horas_extras INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   id_tutor INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
   agregado_por INT UNSIGNED NOT NULL,
   fecha DATE NOT NULL,
   horas DECIMAL(5,2) NOT NULL,
   motivo TEXT NOT NULL,
   fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_tutor) REFERENCES tutores(id_tutor)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  FOREIGN KEY (id_semestre) REFERENCES semestres(id_semestre)
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
   FOREIGN KEY (agregado_por) REFERENCES users(id)
@@ -149,10 +190,20 @@ VALUES
   (1, 1),
   (2, 6);
 
+INSERT INTO semestres (id_semestre, codigo, nombre, fecha_inicio, fecha_fin, activo)
+VALUES
+  (1, '2026-1', 'Semestre 2026-1', '2026-01-01', '2026-06-30', TRUE),
+  (2, '2026-2', 'Semestre 2026-2', '2026-08-01', '2026-12-15', FALSE);
+
 INSERT INTO tutores (id_tutor, id_usuario, matricula, horas_servicio_social, horas_acumuladas, horas_requeridas, estado)
 VALUES
   (1, 2, 'A01738001', 1.00, 42, 160, 'activo'),
   (2, 4, 'A01738002', 1.00, 18, 160, 'activo');
+
+INSERT INTO tutor_semestres (id_tutor, id_semestre, es_principal)
+VALUES
+  (1, 1, TRUE),
+  (2, 1, TRUE);
 
 INSERT INTO nivel_idioma (id_nivel, codigo_mcer, idioma, descripcion)
 VALUES
@@ -163,19 +214,19 @@ VALUES
   (5, 'C1', 'Ingles', 'Nivel avanzado con dominio funcional amplio.'),
   (6, 'C2', 'Ingles', 'Nivel de maestria cercano a nativo.');
 
-INSERT INTO estudiantes (id_estudiante, id_usuario, id_tutor, id_nivel, fecha_asignacion)
+INSERT INTO estudiantes (id_estudiante, id_usuario, id_tutor, id_nivel, id_semestre, fecha_asignacion)
 VALUES
-  (1, 3, 1, 2, '2026-01-15 09:00:00'),
-  (2, 5, 2, 3, '2026-02-03 10:30:00');
+  (1, 3, 1, 2, 1, '2026-01-15 09:00:00'),
+  (2, 5, 2, 3, 1, '2026-02-03 10:30:00');
 
-INSERT INTO bitacoras (id_bitacora, id_tutor, id_estudiante, fecha_sesion, duracion_horas, notas, evidencia_url, fecha_registro)
+INSERT INTO bitacoras (id_bitacora, id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, notas, evidencia_url, fecha_registro)
 VALUES
-  (1, 1, 1, '2026-03-01', 1.50, 'Practica de speaking sobre rutinas diarias.', 'https://example.com/evidencias/bitacora-1', '2026-03-01 12:00:00'),
-  (2, 2, 2, '2026-03-05', 2.00, 'Lectura guiada y comprension auditiva.', 'https://example.com/evidencias/bitacora-2', '2026-03-05 18:20:00');
+  (1, 1, 1, 1, '2026-03-01', 1.50, 'Practica de speaking sobre rutinas diarias.', 'https://example.com/evidencias/bitacora-1', '2026-03-01 12:00:00'),
+  (2, 2, 2, 1, '2026-03-05', 2.00, 'Lectura guiada y comprension auditiva.', 'https://example.com/evidencias/bitacora-2', '2026-03-05 18:20:00');
 
-INSERT INTO incidencias (id_incidencia, id_bitacora, fecha_incidente, descripcion, firma_tutor, fecha_registro)
+INSERT INTO incidencias (id_incidencia, id_bitacora, id_semestre, fecha_incidente, descripcion, firma_tutor, fecha_registro)
 VALUES
-  (1, 1, '2026-03-01', 'El estudiante llego 20 minutos tarde a la sesion.', 'Oriana Vega', '2026-03-01 12:10:00');
+  (1, 1, 1, '2026-03-01', 'El estudiante llego 20 minutos tarde a la sesion.', 'Oriana Vega', '2026-03-01 12:10:00');
 
 INSERT INTO progreso_estudiante (id_progreso, id_estudiante, id_nivel, habilidad, puntuacion, fecha_evaluacion)
 VALUES

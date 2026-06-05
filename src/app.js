@@ -2,6 +2,7 @@ const express = require('express');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const semesterRoutes = require('./routes/semesterRoutes');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api', semesterRoutes);
 app.use('/api', dashboardRoutes);
 
 app.use((req, res) => {

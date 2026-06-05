@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS semestres (
+  id_semestre INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(20) NOT NULL,
+  nombre VARCHAR(120) NOT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NOT NULL,
+  activo BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_semestre_codigo (codigo)
+);
+
+CREATE TABLE IF NOT EXISTS tutor_semestres (
+  id_tutor INT UNSIGNED NOT NULL,
+  id_semestre INT UNSIGNED NOT NULL,
+  es_principal BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_tutor, id_semestre)
+);
+
+ALTER TABLE estudiantes
+  ADD COLUMN id_semestre INT UNSIGNED NOT NULL;
+
+ALTER TABLE bitacoras
+  ADD COLUMN id_semestre INT UNSIGNED NOT NULL;
+
+ALTER TABLE incidencias
+  ADD COLUMN id_semestre INT UNSIGNED NOT NULL;
+
+ALTER TABLE horas_extras
+  ADD COLUMN id_semestre INT UNSIGNED NOT NULL;
