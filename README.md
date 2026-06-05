@@ -67,7 +67,7 @@ Este proyecto usa una base MariaDB llamada `arpa-backend`.
 Ejecuta el script SQL:
 
 ```bash
-mysql -u root -p < src/db/init.sql
+mysql -u root -p < docker/db/init/01-init-schema.sql
 ```
 
 ## Ejecutar el servidor (sin Docker)

@@ -343,7 +343,7 @@ npm install
 3. Levantar MariaDB y crear esquema:
 
 ~~~bash
-mysql -u root -p < src/db/init.sql
+mysql -u root -p < docker/db/init/01-init-schema.sql
 ~~~
 
 4. Iniciar API:

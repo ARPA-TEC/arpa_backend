@@ -1,5 +1,8 @@
 const { query, pool } = require('../config/db');
 const { ROLE } = require('./userController');
+const fs = require('fs/promises');
+const path = require('path');
+const crypto = require('crypto');
 const {
   getActiveSemester,
   getPreferredTutorSemester,
@@ -36,6 +39,40 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString('es-MX');
+}
+
+function evidenceToDataUrl(value) {
+  return typeof value === 'string' && value.startsWith('data:image/')
+    ? value
+    : null;
+}
+
+async function persistEvidence(value, folderName) {
+  if (!value) return null;
+  if (typeof value !== 'string') return value;
+
+  const dataUrl = evidenceToDataUrl(value);
+  if (!dataUrl) return value;
+
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) return value;
+
+  const mime = match[1].toLowerCase();
+  const base64 = match[2];
+  const extensionMap = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+  };
+  const extension = extensionMap[mime] || 'png';
+  const uploadsDir = path.join(process.cwd(), 'uploads', folderName);
+  await fs.mkdir(uploadsDir, { recursive: true });
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const absolutePath = path.join(uploadsDir, fileName);
+  await fs.writeFile(absolutePath, Buffer.from(base64, 'base64'));
+  return `/uploads/${folderName}/${fileName}`;
 }
 
 function buildSkillMap(rows, keyField) {
@@ -512,10 +549,11 @@ async function addTutorBitacora(req, res) {
       await connection.rollback();
       return res.status(404).json({ message: 'Alumno no encontrado para este tutor.' });
     }
+    const storedEvidenceUrl = await persistEvidence(evidenciaUrl, 'bitacoras');
     const [insertResult] = await connection.execute(
       `INSERT INTO bitacoras (id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, notas, evidencia_url)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [tutorId, idEstudiante, selectedSemester.id_semestre, fechaSesion, parsedDuration, notas || null, evidenciaUrl],
+      [tutorId, idEstudiante, selectedSemester.id_semestre, fechaSesion, parsedDuration, notas || null, storedEvidenceUrl],
     );
     await connection.execute(
       `UPDATE tutores SET horas_acumuladas = horas_acumuladas + ? WHERE id_tutor = ?`,
@@ -531,7 +569,7 @@ async function addTutorBitacora(req, res) {
         fecha_sesion: fechaSesion,
         duracion_horas: parsedDuration,
         notas: notas || null,
-        evidencia_url: evidenciaUrl,
+        evidencia_url: storedEvidenceUrl,
       },
     });
   } catch (error) {
@@ -701,9 +739,10 @@ async function createIncidencia(req, res) {
       await connection.rollback();
       return res.status(404).json({ message: 'Bitacora no encontrada.' });
     }
+    const storedEvidenceUrl = await persistEvidence(evidenciaUrl, 'incidencias');
     const [result] = await connection.execute(
       'INSERT INTO incidencias (id_bitacora, id_semestre, fecha_incidente, descripcion, evidencia_url) VALUES (?, ?, CURDATE(), ?, ?)',
-      [id_bitacora, selectedSemester.id_semestre, descripcion, evidenciaUrl],
+      [id_bitacora, selectedSemester.id_semestre, descripcion, storedEvidenceUrl],
     );
     await connection.commit();
     return res.status(201).json({
@@ -714,7 +753,7 @@ async function createIncidencia(req, res) {
         id_semestre: selectedSemester.id_semestre,
         fecha_incidente: new Date().toLocaleDateString('es-MX'),
         descripcion,
-        evidencia_url: evidenciaUrl,
+        evidencia_url: storedEvidenceUrl,
       },
     });
   } catch (error) {

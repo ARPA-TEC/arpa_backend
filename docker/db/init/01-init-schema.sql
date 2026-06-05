@@ -101,7 +101,7 @@ CREATE TABLE bitacoras (
   fecha_sesion DATE NOT NULL,
   duracion_horas DECIMAL(5,2) NOT NULL,
   notas TEXT NULL,
-  evidencia_url VARCHAR(255) NULL,
+  evidencia_url TEXT NULL,
   fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_tutor) REFERENCES tutores(id_tutor)
     ON UPDATE CASCADE
