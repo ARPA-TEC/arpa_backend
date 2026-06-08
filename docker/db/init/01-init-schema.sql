@@ -100,6 +100,7 @@ CREATE TABLE bitacoras (
   id_semestre INT UNSIGNED NOT NULL,
   fecha_sesion DATE NOT NULL,
   duracion_horas DECIMAL(5,2) NOT NULL,
+  estado ENUM('No aprobado', 'Aprobado', 'En revisión') NOT NULL DEFAULT 'Aprobado',
   notas TEXT NULL,
   evidencia_url TEXT NULL,
   fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -219,10 +220,10 @@ VALUES
   (1, 3, 1, 2, 1, '2026-01-15 09:00:00'),
   (2, 5, 2, 3, 1, '2026-02-03 10:30:00');
 
-INSERT INTO bitacoras (id_bitacora, id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, notas, evidencia_url, fecha_registro)
+INSERT INTO bitacoras (id_bitacora, id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, estado, notas, evidencia_url, fecha_registro)
 VALUES
-  (1, 1, 1, 1, '2026-03-01', 1.50, 'Practica de speaking sobre rutinas diarias.', 'https://example.com/evidencias/bitacora-1', '2026-03-01 12:00:00'),
-  (2, 2, 2, 1, '2026-03-05', 2.00, 'Lectura guiada y comprension auditiva.', 'https://example.com/evidencias/bitacora-2', '2026-03-05 18:20:00');
+  (1, 1, 1, 1, '2026-03-01', 1.50, 'Aprobado', 'Practica de speaking sobre rutinas diarias.', 'https://example.com/evidencias/bitacora-1', '2026-03-01 12:00:00'),
+  (2, 2, 2, 1, '2026-03-05', 2.00, 'Aprobado', 'Lectura guiada y comprension auditiva.', 'https://example.com/evidencias/bitacora-2', '2026-03-05 18:20:00');
 
 INSERT INTO incidencias (id_incidencia, id_bitacora, id_semestre, fecha_incidente, descripcion, firma_tutor, fecha_registro)
 VALUES

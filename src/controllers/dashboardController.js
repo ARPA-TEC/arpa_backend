@@ -123,11 +123,17 @@ function buildTutorCard(tutorRow, logsByTutorId, semestersByTutor, hoursByTutorI
     name: `${tutorRow.nombre} ${tutorRow.apellido}`,
     email: tutorRow.email,
     matricula: tutorRow.matricula ?? null,
+    horas_servicio_social: toNumber(tutorRow.horas_servicio_social ?? 1),
     hrs: toNumber(hoursByTutorId[tutorRow.id_tutor] ?? 0),
     logs: logsByTutorId[tutorRow.id_tutor] || [],
     clase_url: tutorRow.clase_url ?? null,
     semesters: semestersByTutor[tutorRow.id_tutor] || [],
   };
+}
+
+function mapBitacoraState(estado) {
+  if (estado === 'Aprobado' || estado === 'No aprobado' || estado === 'En revisión') return estado;
+  return 'En revisión';
 }
 
 async function resolveSemesterId(req) {
@@ -219,6 +225,7 @@ async function getAdminTutors(req, res) {
         `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
           tu.id_tutor,
         tu.matricula,
+        tu.horas_servicio_social,
         tu.horas_acumuladas,
         tu.horas_requeridas,
         tu.estado,
@@ -229,7 +236,7 @@ async function getAdminTutors(req, res) {
         [ROLE.TUTOR],
       ),
       query(
-        `SELECT b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas,
+      `SELECT b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas, b.estado,
            stu_u.nombre AS estudiante_nombre, stu_u.apellido AS estudiante_apellido
          FROM bitacoras b
          JOIN estudiantes e ON e.id_estudiante = b.id_estudiante
@@ -248,12 +255,13 @@ async function getAdminTutors(req, res) {
     for (const row of bitacoras) {
       if (!logsByTutorId[row.id_tutor]) logsByTutorId[row.id_tutor] = [];
       if (!hoursByTutorId[row.id_tutor]) hoursByTutorId[row.id_tutor] = 0;
-      hoursByTutorId[row.id_tutor] += toNumber(row.duracion_horas);
+      if (row.estado === 'Aprobado') hoursByTutorId[row.id_tutor] += toNumber(row.duracion_horas);
       logsByTutorId[row.id_tutor].push({
         ref: `${row.estudiante_nombre} ${row.estudiante_apellido}`,
         date: formatDate(row.fecha_sesion),
         duration: toNumber(row.duracion_horas),
         notes: row.notas,
+        estado: mapBitacoraState(row.estado),
       });
     }
     for (const row of horasExtras) {
@@ -286,14 +294,14 @@ async function getAdminTutors(req, res) {
     query('SELECT * FROM semestres WHERE id_semestre = ? LIMIT 1', [semesterId]),
     query(
       `SELECT u.id AS user_id, u.nombre, u.apellido, u.email,
-         tu.id_tutor, tu.matricula, tu.horas_acumuladas, tu.horas_requeridas, tu.estado
+         tu.id_tutor, tu.matricula, tu.horas_servicio_social, tu.horas_acumuladas, tu.horas_requeridas, tu.estado
        FROM tutores tu
        JOIN users u ON u.id = tu.id_usuario
        WHERE u.role = ? AND u.activo = TRUE ORDER BY u.nombre, u.apellido`,
       [ROLE.TUTOR],
     ),
     query(
-      `SELECT b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas,
+      `SELECT b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas, b.estado,
          stu_u.nombre AS estudiante_nombre, stu_u.apellido AS estudiante_apellido
        FROM bitacoras b
        JOIN estudiantes e ON e.id_estudiante = b.id_estudiante
@@ -325,12 +333,13 @@ async function getAdminTutors(req, res) {
   for (const row of bitacoras) {
     if (!logsByTutorId[row.id_tutor]) logsByTutorId[row.id_tutor] = [];
     if (!hoursByTutorId[row.id_tutor]) hoursByTutorId[row.id_tutor] = 0;
-    hoursByTutorId[row.id_tutor] += toNumber(row.duracion_horas);
+    if (row.estado === 'Aprobado') hoursByTutorId[row.id_tutor] += toNumber(row.duracion_horas);
     logsByTutorId[row.id_tutor].push({
       ref: `${row.estudiante_nombre} ${row.estudiante_apellido}`,
       date: formatDate(row.fecha_sesion),
       duration: toNumber(row.duracion_horas),
       notes: row.notas,
+      estado: mapBitacoraState(row.estado),
     });
   }
 
@@ -444,7 +453,7 @@ async function getTutorDashboard(req, res) {
       [tutorRow.id_tutor, selectedSemester.id_semestre],
     ),
     query(
-      `SELECT b.id_bitacora, b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas, b.evidencia_url,
+      `SELECT b.id_bitacora, b.id_tutor, b.fecha_sesion, b.duracion_horas, b.notas, b.evidencia_url, b.estado,
         stu_u.nombre AS estudiante_nombre, stu_u.apellido AS estudiante_apellido
        FROM bitacoras b
        JOIN estudiantes e ON e.id_estudiante = b.id_estudiante
@@ -467,7 +476,7 @@ async function getTutorDashboard(req, res) {
     getTutorSemesters(tutorRow.id_tutor),
   ]);
   const progressByUserId = buildSkillMap(progressRows, 'user_id');
-  const horasSemestre = bitacoras.reduce((acc, row) => acc + toNumber(row.duracion_horas), 0);
+  const horasSemestre = bitacoras.reduce((acc, row) => acc + (row.estado === 'Aprobado' ? toNumber(row.duracion_horas) : 0), 0);
   return res.status(200).json({
     tutor: {
       id: Number(tutorRow.user_id),
@@ -485,6 +494,7 @@ async function getTutorDashboard(req, res) {
       estudiante: `${row.estudiante_nombre} ${row.estudiante_apellido}`,
       fecha: formatDate(row.fecha_sesion),
       duracion_horas: toNumber(row.duracion_horas),
+      estado: mapBitacoraState(row.estado),
       notas: row.notas,
       evidencia_url: row.evidencia_url || null,
       id_semestre: selectedSemester.id_semestre,
@@ -551,13 +561,9 @@ async function addTutorBitacora(req, res) {
     }
     const storedEvidenceUrl = await persistEvidence(evidenciaUrl, 'bitacoras');
     const [insertResult] = await connection.execute(
-      `INSERT INTO bitacoras (id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, notas, evidencia_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bitacoras (id_tutor, id_estudiante, id_semestre, fecha_sesion, duracion_horas, estado, notas, evidencia_url)
+       VALUES (?, ?, ?, ?, ?, 'En revisión', ?, ?)`,
       [tutorId, idEstudiante, selectedSemester.id_semestre, fechaSesion, parsedDuration, notas || null, storedEvidenceUrl],
-    );
-    await connection.execute(
-      `UPDATE tutores SET horas_acumuladas = horas_acumuladas + ? WHERE id_tutor = ?`,
-      [parsedDuration, tutorId],
     );
     await connection.commit();
     return res.status(201).json({
@@ -568,6 +574,7 @@ async function addTutorBitacora(req, res) {
         id_semestre: selectedSemester.id_semestre,
         fecha_sesion: fechaSesion,
         duracion_horas: parsedDuration,
+        estado: 'En revisión',
         notas: notas || null,
         evidencia_url: storedEvidenceUrl,
       },
@@ -822,6 +829,137 @@ async function addHorasExtras(req, res) {
   }
 }
 
+async function updateTutorHorasServicioSocial(req, res) {
+  const { id } = req.params;
+  const { horas_servicio_social: horasServicioSocialRaw } = req.body;
+  const horasServicioSocial = Number(horasServicioSocialRaw);
+
+  if (Number.isNaN(horasServicioSocial) || horasServicioSocial <= 0) {
+    return res.status(400).json({ message: 'horas_servicio_social debe ser un numero mayor a 0.' });
+  }
+
+  try {
+    const tutorRows = await query(
+      'SELECT id_tutor, id_usuario FROM tutores WHERE id_tutor = ? LIMIT 1',
+      [id],
+    );
+    if (!tutorRows.length) {
+      return res.status(404).json({ message: 'Tutor no encontrado.' });
+    }
+
+    await query(
+      'UPDATE tutores SET horas_servicio_social = ? WHERE id_tutor = ?',
+      [horasServicioSocial, id],
+    );
+
+    return res.status(200).json({
+      message: 'Horas de servicio social actualizadas correctamente.',
+      tutor: {
+        id_tutor: Number(id),
+        horas_servicio_social: horasServicioSocial,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al actualizar horas de servicio social.', error: error.message });
+  }
+}
+
+async function getPendingBitacoras(req, res) {
+  const semesterId = await resolveSemesterId(req);
+  const params = [];
+  let semesterFilter = '';
+  if (semesterId) {
+    semesterFilter = 'WHERE b.id_semestre = ? AND b.estado = "En revisión"';
+    params.push(semesterId);
+  } else {
+    semesterFilter = 'WHERE b.estado = "En revisión"';
+  }
+
+  const rows = await query(
+    `SELECT b.id_bitacora, b.id_tutor, b.id_semestre, b.fecha_sesion, b.duracion_horas, b.notas, b.evidencia_url, b.estado,
+      u.nombre AS tutor_nombre, u.apellido AS tutor_apellido,
+      stu_u.nombre AS estudiante_nombre, stu_u.apellido AS estudiante_apellido,
+      s.codigo AS semestre_codigo, s.nombre AS semestre_nombre
+     FROM bitacoras b
+     JOIN tutores tu ON tu.id_tutor = b.id_tutor
+     JOIN users u ON u.id = tu.id_usuario
+     JOIN estudiantes e ON e.id_estudiante = b.id_estudiante
+     JOIN users stu_u ON stu_u.id = e.id_usuario
+     JOIN semestres s ON s.id_semestre = b.id_semestre
+     ${semesterFilter}
+     ORDER BY b.fecha_registro DESC, b.id_bitacora DESC`,
+    params,
+  );
+
+  return res.status(200).json({
+    bitacoras: rows.map((row) => ({
+      id: Number(row.id_bitacora),
+      tutor: `${row.tutor_nombre} ${row.tutor_apellido}`,
+      estudiante: `${row.estudiante_nombre} ${row.estudiante_apellido}`,
+      semestre: row.semestre_nombre ?? row.semestre_codigo,
+      fecha: formatDate(row.fecha_sesion),
+      duracion_horas: toNumber(row.duracion_horas),
+      notas: row.notas,
+      evidencia_url: row.evidencia_url || null,
+      estado: mapBitacoraState(row.estado),
+      id_semestre: Number(row.id_semestre),
+    })),
+  });
+}
+
+async function updateBitacoraEstado(req, res) {
+  const { id_bitacora } = req.params;
+  const { estado } = req.body;
+  const validStates = ['Aprobado', 'No aprobado', 'En revisión'];
+  if (!validStates.includes(estado)) {
+    return res.status(400).json({ message: 'estado invalido.' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    const rows = await connection.execute(
+      `SELECT b.id_bitacora, b.id_tutor, b.duracion_horas, b.estado
+       FROM bitacoras b
+       WHERE b.id_bitacora = ? LIMIT 1`,
+      [id_bitacora],
+    );
+    if (!rows[0].length) {
+      return res.status(404).json({ message: 'Bitacora no encontrada.' });
+    }
+    const bitacora = rows[0][0];
+    const delta = estado === 'Aprobado' && bitacora.estado !== 'Aprobado'
+      ? toNumber(bitacora.duracion_horas)
+      : estado !== 'Aprobado' && bitacora.estado === 'Aprobado'
+        ? -toNumber(bitacora.duracion_horas)
+        : 0;
+
+    await connection.beginTransaction();
+    await connection.execute(
+      'UPDATE bitacoras SET estado = ? WHERE id_bitacora = ?',
+      [estado, id_bitacora],
+    );
+    if (delta !== 0) {
+      await connection.execute(
+        'UPDATE tutores SET horas_acumuladas = GREATEST(0, horas_acumuladas + ?) WHERE id_tutor = ?',
+        [delta, bitacora.id_tutor],
+      );
+    }
+    await connection.commit();
+    return res.status(200).json({
+      message: 'Bitacora actualizada correctamente.',
+      bitacora: {
+        id: Number(id_bitacora),
+        estado,
+      },
+    });
+  } catch (error) {
+    await connection.rollback();
+    return res.status(500).json({ message: 'Error al actualizar bitacora.', error: error.message });
+  } finally {
+    connection.release();
+  }
+}
+
 async function updateClaseUrl(req, res) {
   const { clase_url } = req.body;
   const connection = await pool.getConnection();
@@ -844,9 +982,12 @@ module.exports = {
   getStudentDashboard,
   getTutorDashboard,
   addTutorBitacora,
+  getPendingBitacoras,
+  updateBitacoraEstado,
   createStudent,
   updateStudentSkill,
   createIncidencia,
   addHorasExtras,
+  updateTutorHorasServicioSocial,
   updateClaseUrl,
 };
